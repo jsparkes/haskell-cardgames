@@ -69,7 +69,7 @@ autoWar = do
     results <- playGameAuto playingDecks
     -- Check to see which player has 0 cards.
     -- The one with 0 cards loses. The other one wins.
-    if length (snd results) == 0
+    if null (snd results)
         then putStrLn "Player 1 wins the game!"
         else putStrLn "Player 2 wins the game!"
 
@@ -88,7 +88,7 @@ interactiveWar = do
     results <- playGameInteractive playingDecks
     -- Check to see which player has 0 cards.
     -- The one with 0 cards loses. The other one wins.
-    if (length (snd results)) == 0
+    if null (snd results)
         then putStrLn "You win the game!"
         else putStrLn "Computer wins the game..."
 
@@ -99,7 +99,7 @@ getPlayingDecks :: IO ([PlayingCard], [PlayingCard])
 getPlayingDecks = do
     deck <- shuffledDeck
     return ([deck !! i | i <- [0..((length deck `quot` 2) - 1)]],
-          [deck !! j | j <- [((length deck) `quot` 2)..(length deck - 1)]])
+          [deck !! j | j <- [(length deck `quot` 2)..(length deck - 1)]])
 
 {-
 compareCards compare the rank of two cards.
@@ -121,22 +121,22 @@ simulateWar p1Deck p2Deck currentCardsAtStake
     -- at the start of a war, each player must remove 3
     | length p1Deck < 4 = do
         putStrLn "P1 does not have enough cards for war."
-        return ("Player 2", currentCardsAtStake ++ p1Deck ++ (take (length p1Deck) (reverse p2Deck)))
+        return ("Player 2", currentCardsAtStake ++ p1Deck ++ take (length p1Deck) (reverse p2Deck))
     | length p2Deck < 4 = do
         putStrLn "P2 does not have enough cards for war."
-        return ("Player 1", currentCardsAtStake ++ p2Deck ++ (take (length p2Deck) (reverse p1Deck)))
+        return ("Player 1", currentCardsAtStake ++ p2Deck ++ take (length p2Deck) (reverse p1Deck))
     | otherwise = do
-        let newAtStake = currentCardsAtStake ++ (take 4 (reverse p1Deck)) ++ (take 4 (reverse p2Deck))
+        let newAtStake = currentCardsAtStake ++ take 4 (reverse p1Deck) ++ take 4 (reverse p2Deck)
         let p1NextCard = p1Deck !! (length p1Deck - 4)
         let p2NextCard = p2Deck !! (length p2Deck - 4)
-        putStr ("P1 plays a " ++ cardToString (p1NextCard) ++ ". ")
-        putStr ("P2 plays a " ++ cardToString (p2NextCard) ++ ". ")
-        if (compareCards p1NextCard p2NextCard) == "Player 1"
+        putStr ("P1 plays a " ++ cardToString p1NextCard ++ ". ")
+        putStr ("P2 plays a " ++ cardToString p2NextCard ++ ". ")
+        if compareCards p1NextCard p2NextCard == "Player 1"
             then do
                 putStrLn "P1 wins the war.\n"
                 return ("Player 1", newAtStake)
             else
-                if (compareCards p1NextCard p2NextCard) == "Player 2"
+                if compareCards p1NextCard p2NextCard == "Player 2"
                     then do
                         putStrLn "P2 wins the war.\n"
                         return ("Player 2", newAtStake)
@@ -145,7 +145,7 @@ simulateWar p1Deck p2Deck currentCardsAtStake
                         putStrLn "\n==========WARRRRR!==========\n"
                         setSGR [Reset]
                         putStrLn "Each player takes out three cards face down."
-                        simulateWar (take ((length p1Deck) - 4) p1Deck) (take ((length p2Deck) - 4) p2Deck) newAtStake
+                        simulateWar (take (length p1Deck - 4) p1Deck) (take (length p2Deck - 4) p2Deck) newAtStake
 
 {-
 The automatic version of the game.
@@ -159,7 +159,7 @@ playGameAuto (p1Deck, p2Deck)
     -- This means to check if either of the players wins the whole game.
 
     {- ++ "Cards" ++ "P2 has " ++ (cardToString p2Deck) ++ "Cards") -}
-    | length p1Deck == 0 || length p2Deck == 0 = do
+    | null p1Deck  || null p2Deck  = do
         return (p1Deck, p2Deck)
 
     | otherwise = do
@@ -167,13 +167,13 @@ playGameAuto (p1Deck, p2Deck)
         putStrLn ("Player 2 has " ++ show (length p2Deck)++ " cards left")
         let p1NextCard = last p1Deck
         let p2NextCard = last p2Deck
-        putStr ("P1 plays a " ++ (cardToString p1NextCard) ++ ". ")
-        putStr ("P2 plays a " ++ (cardToString p2NextCard) ++ ". ")
+        putStr ("P1 plays a " ++ cardToString p1NextCard ++ ". ")
+        putStr ("P2 plays a " ++ cardToString p2NextCard ++ ". ")
 
         -- Check if player 1 wins the round.
         if compareCards p1NextCard p2NextCard == "Player 1"
             then do
-                let cardsChanged = [p1NextCard] ++ [p2NextCard]
+                let cardsChanged = p1NextCard:[p2NextCard]
                 let newp1Deck = cardsChanged ++ init p1Deck
                 let newp2Deck = init p2Deck
                 putStrLn "P1 wins the round."
@@ -183,7 +183,7 @@ playGameAuto (p1Deck, p2Deck)
                 -- Check if player 2 wins the round.
                 if compareCards p1NextCard p2NextCard == "Player 2"
                     then do
-                        let cardsChanged = [p2NextCard] ++ [p1NextCard]
+                        let cardsChanged = p2NextCard:[p1NextCard]
                         let newp1Deck = init p1Deck
                         let newp2Deck = cardsChanged ++ init p2Deck
                         putStrLn "P2 wins the round."
@@ -203,12 +203,13 @@ playGameAuto (p1Deck, p2Deck)
                     -- Check if player 1 wins the War.
                     if winner == "Player 1"
                         then do
-                            let newp1Deck = cardsChanged ++ (take ((length p1Deck) - amountChanged `quot` 2) p1Deck)
-                            let newp2Deck = take ((length p2Deck) - amountChanged `quot` 2) p2Deck
+                            let newp1Deck = cardsChanged ++ take (length p1Deck - amountChanged `quot` 2) p1Deck
+                            {- https://www.reddit.com/r/haskell/comments/uwrb7/why_do_haskell_programmers_hate_parentheses/ -}
+                            let newp2Deck = take (length p2Deck - amountChanged `quot` 2) p2Deck
                             playGameAuto (newp1Deck, newp2Deck)
                         else do
-                            let newp2Deck = cardsChanged ++ (take ((length p2Deck) - amountChanged `quot` 2) p2Deck)
-                            let newp1Deck = (take ((length p1Deck) - amountChanged `quot` 2) p1Deck)
+                            let newp2Deck = cardsChanged ++ take (length p2Deck - amountChanged `quot` 2) p2Deck
+                            let newp1Deck = take (length p1Deck - amountChanged `quot` 2) p1Deck
                             playGameAuto (newp1Deck, newp2Deck)
 
 {-
@@ -222,17 +223,19 @@ playGameInteractive (p1Deck, p2Deck)
     -- Check if either of the player has 0 cards.
     -- This means to check if either of the players wins the whole game.
     | length p1Deck == 0 || length p2Deck == 0 = do
+        {- Nullification warnings https://stackoverflow.com/questions/57029258/why-use-null-function-instead-of-to-check-for-empty-list-in-haskell -}
         return (p1Deck, p2Deck)
     | otherwise = do
         let p1NextCard = last p1Deck
         let p2NextCard = last p2Deck
-        putStr ("P1 has " ++ (cardToString p1NextCard) ++ ". ")
-        putStr ("P2 has " ++ (cardToString p2NextCard) ++ ". ")
+        putStr ("P1 has " ++ cardToString p1NextCard ++ ". ")
+        putStr ("P2 has " ++ cardToString p2NextCard ++ ". ")
 
         -- Check if player 1 wins the round.
         if compareCards p1NextCard p2NextCard == "Player 1"
             then do
-                let cardsChanged = [p1NextCard] ++ [p2NextCard]
+                {- let cardsChanged = [p1NextCard] ++ [p2NextCard] was changed to below to keelp hlint happy -}
+                let cardsChanged = p1NextCard:[p2NextCard]
                 let newp1Deck = cardsChanged ++ init p1Deck
                 let newp2Deck = init p2Deck
                 putStrLn "P1 wins."
@@ -248,7 +251,7 @@ playGameInteractive (p1Deck, p2Deck)
                 -- Check if player 2 wins the round.
                 if compareCards p1NextCard p2NextCard == "Player 2"
                     then do
-                        let cardsChanged = [p2NextCard] ++ [p1NextCard]
+                        let cardsChanged = p2NextCard:[p1NextCard]
                         let newp1Deck = init p1Deck
                         let newp2Deck = cardsChanged ++ init p2Deck
                         putStrLn "P2 wins."
@@ -274,16 +277,16 @@ playGameInteractive (p1Deck, p2Deck)
                         -- Check if player 1 wins the War.
                         if winner == "Player 1"
                             then do
-                                let newp1Deck = cardsChanged ++ (take ((length p1Deck) - amountChanged `quot` 2) p1Deck)
-                                let newp2Deck = take ((length p2Deck) - amountChanged `quot` 2) p2Deck
+                                let newp1Deck = cardsChanged ++ take (length p1Deck - amountChanged `quot` 2) p1Deck
+                                let newp2Deck = take (length p2Deck - amountChanged `quot` 2) p2Deck
 
                                 putStrLn "Press any key to start the next round!"
                                 userInput <- getLine
 
                                 playGameInteractive (newp1Deck, newp2Deck)
                             else do
-                                let newp2Deck = cardsChanged ++ (take ((length p2Deck) - amountChanged `quot` 2) p2Deck)
-                                let newp1Deck = (take ((length p1Deck) - amountChanged `quot` 2) p1Deck)
+                                let newp2Deck = cardsChanged ++ take (length p2Deck - amountChanged `quot` 2) p2Deck
+                                let newp1Deck = take (length p1Deck - amountChanged `quot` 2) p1Deck
 
                                 -- Ask for user's input to play the next card/start the next round.
                                 -- It can be any key. Thus, user's input does not need to be checked.
